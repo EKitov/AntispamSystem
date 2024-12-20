@@ -1,0 +1,43 @@
+/* src/main/resources/static/css/style.css */
+body {
+    font-family: Arial, sans-serif;
+}
+
+form {
+    width: 300px;
+    margin: 0 auto;
+}
+h2 {
+    text-align: center;
+    margin-right: 153px;
+    color: #4d4d4d; /* Темно-серый цвет */
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #30b24e;
+    color: white;
+    padding: 10px;
+    border: none;
+    width: 150px;
+    text-align: center;
+    cursor: pointer;
+    margin: 20px auto; /* Центрирование кнопки через margin */
+    display: block; /* Блок для работы margin */
+}
+
+button:hover {
+    background-color: #218838;
+}

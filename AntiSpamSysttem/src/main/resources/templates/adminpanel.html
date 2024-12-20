@@ -1,0 +1,227 @@
+<!-- src/main/resources/templates/adminpanel.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" th:href="@{/css/astyles.css}" />
+    <script>
+        // Открытие окна выбора файла
+        function triggerFileInput(id) {
+            document.getElementById(id).click();
+        }
+
+        // Функция загрузки файла и обновления данных на странице
+        function uploadFile(inputElement, endpoint) {
+            const file = inputElement.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const content = event.target.result;
+                    const lines = content.split(/\r?\n/); // Разделяем содержимое файла по строкам
+
+                    fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(lines)
+                    }).then(response => response.json()) // Ожидаем JSON-ответ
+                        .then(data => {
+                            alert(data.message); // Показать сообщение пользователю
+
+                            // Обновляем соответствующее текстовое поле на странице
+                            if (endpoint.includes("uploadIp")) {
+                                document.getElementById("newIp").value = data.ipBlacklist;
+                            } else if (endpoint.includes("uploadPhone")) {
+                                document.getElementById("newPhone").value = data.phoneBlacklist;
+                            } else if (endpoint.includes("uploadEmail")) {
+                                document.getElementById("newEmail").value = data.emailBlacklist;
+                            } else if (endpoint.includes("uploadWhiteIp")) {
+                                document.getElementById("newWhiteIp").value = data.ipWhitelist;
+                            } else if (endpoint.includes("uploadWhitePhone")) {
+                                document.getElementById("newWhitePhone").value = data.phoneWhitelist;
+                            } else if (endpoint.includes("uploadWhiteEmail")) {
+                                document.getElementById("newWhiteEmail").value = data.emailWhitelist;
+                            }
+                        }).catch(error => console.error('Ошибка:', error));
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Функция сохранения параметров и данных текстовых полей
+        function saveTabParameters(tab) {
+            const param1 = document.getElementById(`${tab}-param1`).value;
+            const param2 = document.getElementById(`${tab}-param2`).value;
+            const param3 = document.getElementById(`${tab}-param3`).value;
+
+            // Данные из текстовых полей
+            const ipData = document.getElementById(tab === 'blacklist' ? 'newIp' : 'newWhiteIp').value.split(/\r?\n/);
+            const phoneData = document.getElementById(tab === 'blacklist' ? 'newPhone' : 'newWhitePhone').value.split(/\r?\n/);
+            const emailData = document.getElementById(tab === 'blacklist' ? 'newEmail' : 'newWhiteEmail').value.split(/\r?\n/);
+
+            // Отправляем параметры и данные текстовых полей на сервер
+            fetch(`/adminpanel/save${tab}Data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    param1: param1,
+                    param2: param2,
+                    param3: param3,
+                    ipData: ipData,
+                    phoneData: phoneData,
+                    emailData: emailData
+                })
+            }).then(response => response.text())
+                .then(message => alert(message)) // Показать сообщение пользователю
+                .catch(error => console.error('Ошибка:', error));
+        }
+
+        // Логика переключения вкладок и обновления меню
+        function showTab(tabId, menuLink) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.style.display = 'none');
+
+            document.getElementById(tabId).style.display = 'block';
+
+            // Обновление активного класса в меню
+            const menuItems = document.querySelectorAll('.sidebar nav ul li a');
+            menuItems.forEach(item => item.classList.remove('active'));
+            menuLink.classList.add('active');
+        }
+
+        // Показать вкладку черного списка по умолчанию
+        window.onload = function() {
+            showTab('blacklist-tab', document.querySelector('.sidebar nav ul li a.active'));
+        };
+    </script>
+</head>
+<body>
+<div class="main-container">
+    <!-- Левое меню -->
+    <div class="sidebar">
+        <div class="logo">
+            <h2>QForm</h2>
+        </div>
+        <div class="menu-title">
+            <p>Управление антиспамом</p>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#" class="active" onclick="showTab('blacklist-tab', this)">черный список</a></li>
+                <li><a href="#" onclick="showTab('whitelist-tab', this)">белый список</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="content">
+        <!-- Управление аккаунтом -->
+        <div class="account-info">
+            <span>Admin</span>
+            <div class="avatar"></div>
+        </div>
+
+        <header>
+            <h2>Управление антиспамом<span id="tab-title"></span></h2>
+        </header>
+
+        <!-- Вкладка черного списка -->
+        <div id="blacklist-tab" class="tab-content">
+            <div class="settings">
+                <h3>Управление антиспамом — Черный список</h3>
+                <!-- Блок черного списка IP-адресов -->
+                <form method="post" class="form-section">
+                    <label for="newIp">Blacklist IP-адресов</label>
+                    <textarea id="newIp" name="newIp" rows="4" cols="50" th:text="${#strings.arrayJoin(ipBlacklist, '\n')}"></textarea><br>
+                    <input type="file" id="ipFile" class="hidden-file-input" accept=".txt" onchange="uploadFile(this, '/adminpanel/uploadIp')" />
+                    <button type="button" class="button" onclick="triggerFileInput('ipFile')">Добавить IP</button>
+                </form>
+
+                <!-- Блок черного списка номеров телефонов -->
+                <form method="post" class="form-section">
+                    <label for="newPhone">Blacklist Номеров Телефонов</label>
+                    <textarea id="newPhone" name="newPhone" rows="4" cols="50" th:text="${#strings.arrayJoin(phoneBlacklist, '\n')}"></textarea><br>
+                    <input type="file" id="phoneFile" class="hidden-file-input" accept=".txt" onchange="uploadFile(this, '/adminpanel/uploadPhone')" />
+                    <button type="button" class="button" onclick="triggerFileInput('phoneFile')">Добавить Телефон</button>
+                </form>
+
+                <!-- Блок черного списка e-mail -->
+                <form method="post" class="form-section">
+                    <label for="newEmail">Blacklist E-mail</label>
+                    <textarea id="newEmail" name="newEmail" rows="4" cols="50" th:text="${#strings.arrayJoin(emailBlacklist, '\n')}"></textarea><br>
+                    <input type="file" id="emailFile" class="hidden-file-input" accept=".txt" onchange="uploadFile(this, '/adminpanel/uploadEmail')" />
+                    <button type="button" class="button" onclick="triggerFileInput('emailFile')">Добавить Email</button>
+                </form>
+
+                <!-- Параметры черного списка -->
+                <div class="form-section">
+                    <h4>Параметры черного списка</h4>
+                    <div>
+                        <label for="blacklist-param1">Параметр 1</label>
+                        <input type="number" id="blacklist-param1" name="blacklist-param1" th:value="${blacklistParam1}" />
+                    </div>
+                    <div>
+                        <label for="blacklist-param2">Параметр 2</label>
+                        <input type="number" id="blacklist-param2" name="blacklist-param2" th:value="${blacklistParam2}" />
+                    </div>
+                    <div>
+                        <label for="blacklist-param3">Параметр 3</label>
+                        <input type="number" id="blacklist-param3" name="blacklist-param3" th:value="${blacklistParam3}" />
+                    </div>
+                    <button type="button" class="button save-button" onclick="saveTabParameters('blacklist')">Сохранить черный список</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка белого списка -->
+        <div id="whitelist-tab" class="tab-content" style="display:none;">
+            <div class="settings">
+                <h3>Управление антиспамом — Белый список</h3>
+                <!-- Блок белого списка IP-адресов -->
+                <form method="post" class="form-section">
+                    <label for="newWhiteIp">Whitelist IP-адресов</label>
+                    <textarea id="newWhiteIp" name="newWhiteIp" rows="4" cols="50" th:text="${#strings.arrayJoin(ipWhitelist, '\n')}"></textarea><br>
+                    <input type="file" id="whiteIpFile" class="hidden-file-input" accept=".txt" onchange="uploadFile(this, '/adminpanel/uploadWhiteIp')" />
+                    <button type="button" class="button" onclick="triggerFileInput('whiteIpFile')">Добавить IP</button>
+                </form>
+
+                <!-- Блок белого списка номеров телефонов -->
+                <form method="post" class="form-section">
+                    <label for="newWhitePhone">Whitelist Номеров Телефонов</label>
+                    <textarea id="newWhitePhone" name="newWhitePhone" rows="4" cols="50" th:text="${#strings.arrayJoin(phoneWhitelist, '\n')}"></textarea><br>
+                    <input type="file" id="whitePhoneFile" class="hidden-file-input" accept=".txt" onchange="uploadFile(this, '/adminpanel/uploadWhitePhone')" />
+                    <button type="button" class="button" onclick="triggerFileInput('whitePhoneFile')">Добавить Телефон</button>
+                </form>
+
+                <!-- Блок белого списка e-mail -->
+                <form method="post" class="form-section">
+                    <label for="newWhiteEmail">Whitelist E-mail</label>
+                    <textarea id="newWhiteEmail" name="newWhiteEmail" rows="4" cols="50" th:text="${#strings.arrayJoin(emailWhitelist, '\n')}"></textarea><br>
+                    <input type="file" id="whiteEmailFile" class="hidden-file-input" accept=".txt" onchange="uploadFile(this, '/adminpanel/uploadWhiteEmail')" />
+                    <button type="button" class="button" onclick="triggerFileInput('whiteEmailFile')">Добавить Email</button>
+                </form>
+
+                <!-- Параметры белого списка -->
+                <div class="form-section">
+                    <h4>Параметры белого списка</h4>
+                    <div>
+                        <label for="whitelist-param1">Параметр 1</label>
+                        <input type="number" id="whitelist-param1" name="whitelist-param1" th:value="${whitelistParam1}" />
+                    </div>
+                    <div>
+                        <label for="whitelist-param2">Параметр 2</label>
+                        <input type="number" id="whitelist-param2" name="whitelist-param2" th:value="${whitelistParam2}" />
+                    </div>
+                    <div>
+                        <label for="whitelist-param3">Параметр 3</label>
+                        <input type="number" id="whitelist-param3" name="whitelist-param3" th:value="${whitelistParam3}" />
+                    </div>
+                    <button type="button" class="button save-button" onclick="saveTabParameters('whitelist')">Сохранить белый список</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

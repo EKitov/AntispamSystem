@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Заявки</title>
+    <link rel="stylesheet" href="/css/alstyles.css">
+</head>
+<body>
+<div class="hamburger-menu" onclick="toggleSidebar()">☰</div>
+
+<div class="sidebar" id="sidebar">
+    <ul>
+        <li><a href="#">Главная</a></li>
+        <li><a href="#">Заявки</a></li>
+        <li><a href="#">Статистика</a></li>
+        <li><a href="#">Настройки</a></li>
+    </ul>
+</div>
+
+<div class="container">
+    <h1>Ответы и заявки</h1>
+
+    <!-- Панель фильтров -->
+    <div class="filter-panel">
+        <button class="filter-button active">Все</button>
+        <button class="filter-button">Новые</button>
+        <button class="filter-button">В обработке</button>
+        <button class="filter-button">Успешная</button>
+        <button class="filter-button">Некачественная</button>
+        <button class="filter-button">Спам</button>
+        <button class="filter-button">Только мои заявки</button>
+        <input type="text" placeholder="Поиск" class="search-input">
+    </div>
+
+    <!-- Динамически создаваемые карточки заявок -->
+    <div class="bid-cards">
+        <div th:each="bid : ${bids}" class="bid-card" oncontextmenu="showContextMenu(event); return false;">
+            <div class="card-header">
+                <span>ID: #<span th:text="${bid.id}"></span></span>
+                <span class="status" th:text="${bid.status}" th:attr="data-status=${bid.status}">Статус</span>
+            </div>
+            <div class="card-body">
+                <p>Имя: <span th:text="${bid.name}">Имя</span></p>
+                <p>Телефон: <span th:text="${bid.phone}">Телефон</span></p>
+                <p>Email: <span th:text="${bid.email}">Email</span></p>
+                <p>Время звонка: <span th:text="${bid.formattedDate}">Дата</span></p>
+                <p><a th:href="${bid.presentationLink}" class="presentation" th:text="'Презентация для ' + ${bid.name}">Презентация для автозаполнения</a></p>
+                <p>Комментарий: <span th:text="${bid.comments}">Комментарий</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Контекстное меню -->
+    <div id="contextMenu" class="context-menu">
+        <ul>
+            <li onclick="markAs('Успешная')">Успешная</li>
+            <li onclick="markAs('Некачественная')">Некачественная</li>
+            <li onclick="markAs('Спам')">Спам</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        sidebar.classList.toggle("visible");
+        document.body.classList.toggle("shifted");
+    }
+
+    function showContextMenu(event) {
+        event.preventDefault();
+        var contextMenu = document.getElementById("contextMenu");
+        contextMenu.style.display = "block";
+        contextMenu.style.left = event.pageX + "px";
+        contextMenu.style.top = event.pageY + "px";
+    }
+
+    window.onclick = function() {
+        document.getElementById("contextMenu").style.display = "none";
+    };
+</script>
+</body>
+</html>

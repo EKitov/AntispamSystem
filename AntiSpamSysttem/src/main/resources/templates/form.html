@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Ваша форма</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script>
+        let cursorData = [];
+        let keyPressData = [];
+        let typingSpeeds = [];
+        let keyPressDurations = [];  // Хранение времени удержания клавиши
+        let keyResponseTimes = [];   // Для времени отклика клавиши
+        let lastKeyPressTime = null;
+        let lastKeyDownTime = null;  // Время начала нажатия
+        let typoCount = 0;
+        let trackingActive = true;  // Управление отслеживанием действий
+        let captchaRequired = false; // Флаг для состояния "Я не робот"
+        let receivedImagePath = "";  // Путь к изображению, возвращенному сервером
+        let clientIP = "";
+
+        // Обработчик движения курсора
+        document.addEventListener('mousemove', function (event) {
+            if (!trackingActive) return;
+
+            let cursorInfo = {
+                x: event.clientX,
+                y: event.clientY,
+                time: new Date().getTime()
+            };
+            cursorData.push(cursorInfo);
+            console.log("Cursor position:", cursorInfo.x, cursorInfo.y, "Time:", cursorInfo.time);
+        });
+
+        // Обработчик нажатий клавиш
+        document.addEventListener('keydown', function (event) {
+            if (!trackingActive) return;
+
+            let keydownEventTime = new Date().getTime();  // Время наступления события keydown
+
+            setTimeout(function() {
+                let currentTime = new Date().getTime();
+
+                // Время отклика = разница между реальным временем и временем наступления события
+                let responseTime = currentTime - keydownEventTime;
+                keyResponseTimes.push(responseTime);
+                console.log("Key response time:", responseTime, "ms");
+
+                lastKeyDownTime = currentTime;  // Запоминаем время нажатия клавиши
+
+                if (lastKeyPressTime !== null) {
+                    let timeDiff = currentTime - lastKeyPressTime;
+                    typingSpeeds.push(timeDiff);
+                    console.log("Time between key presses:", timeDiff, "ms");
+                }
+
+                lastKeyPressTime = currentTime;  // Обновляем время последнего нажатия
+
+                let keyPressInfo = {
+                    key: event.key,
+                    time: currentTime
+                };
+
+                if (event.key === "Backspace" || event.key === "Delete") {
+                    typoCount++;
+                    console.log("Typo detected! Current typo count:", typoCount);
+                }
+
+                keyPressData.push(keyPressInfo);
+                console.log("Key pressed:", keyPressInfo.key, "Time:", keyPressInfo.time);
+            }, 0);  // Обработка отклика без задержки
+        });
+
+
+        // Обработчик отпускания клавиш
+        document.addEventListener('keyup', function (event) {
+            if (!trackingActive || lastKeyDownTime === null) return;
+
+            let currentTime = new Date().getTime();
+            let pressDuration = currentTime - lastKeyDownTime;  // Рассчитываем время удержания клавиши
+            keyPressDurations.push(pressDuration);
+            console.log("Key held duration:", pressDuration, "ms");
+
+            lastKeyDownTime = null;  // Сбрасываем время нажатия
+        });
+
+        async function getClientIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                clientIP = data.ip;
+                console.log(`IP-адрес клиента: ${clientIP}`);
+            } catch (error) {
+                console.error('Ошибка при получении IP:', error);
+            }
+        }
+        // Подсчитываем среднюю скорость набора текста
+        function calculateTypingSpeed() {
+            if (typingSpeeds.length === 0) return 0;
+            let sum = typingSpeeds.reduce((a, b) => a + b, 0);
+            let avg = sum / typingSpeeds.length;
+            return (avg / 1000).toFixed(2);
+        }
+        // Подсчитываем среднее время удержания клавиш
+        function calculateAverageKeyPressDuration() {
+            if (keyPressDurations.length === 0) return 0;
+            let sum = keyPressDurations.reduce((a, b) => a + b, 0);
+            return (sum / keyPressDurations.length).toFixed(2);
+        }
+
+        // Отправляем данные о движении курсора на сервер
+        async function sendCursorDataToServer() {
+            await getClientIP();
+            console.log(`IP-адрес клиентаыф: ${clientIP}`);
+            try {
+                let response = await fetch('/save-cursor-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cursorData: cursorData,
+                        typingSpeed: calculateTypingSpeed(), // Скорость набора
+                        typoCount: typoCount, // Количество опечаток
+                        avgKeyPressDuration: calculateAverageKeyPressDuration(),
+                        typingSpeeds: typingSpeeds,
+                        keyPressDurations: keyPressDurations
+                        //avgKeyResponseTime: calculateAverageKeyResponseTime(),
+                        //clientIPAddress: clientIP
+                    })
+                });
+                let data = await response.json();
+                console.log("Server response:", data);
+
+                receivedImagePath = data.file;
+                return data;
+            } catch (error) {
+                console.error('Error:', error);
+                return { trajectory: "error" };
+            }
+        }
+
+        // Обработка кнопки "Отправить"
+        async function logData(event) {
+            event.preventDefault(); // Предотвращаем отправку формы
+
+            let typingSpeed = calculateTypingSpeed();
+            let avgKeyPressDuration = calculateAverageKeyPressDuration();
+            let avgKeyResponseTime = calculateAverageKeyResponseTime();
+            console.log("Average typing speed (seconds between keys):", typingSpeed);
+            console.log("Average key press duration (ms):", avgKeyPressDuration);
+            console.log("Average key response time (ms):", avgKeyResponseTime);
+            console.log("Total number of typos:", typoCount);
+
+            // Отправляем данные о движении курсора на сервер и получаем результат
+            let response = await sendCursorDataToServer();
+
+            if (response.trajectory === "suspicious") {
+                // Подозрительная траектория
+                trackingActive = false; // Отключаем отслеживание
+                captchaRequired = true; // Требуем отметки "Я не робот"
+
+                // Показываем галочку "Я не робот"
+                document.getElementById("robotCheckContainer").style.display = "block";
+                document.getElementById("submitButton").disabled = true;
+                console.log("Suspicious activity detected. Showing 'I'm not a robot' checkbox.");
+                //startCountdown(response.file); // Запускаем таймер на удаление
+            } else {
+                if(response.trajectory === "spam") {
+                    captchaRequired = true;
+                    // Показываем сообщение, что форма заблокирована
+                    document.getElementById("formBlockedMessage").style.display = "block";
+                    // Скрываем все остальные элементы формы
+                    let formElements = document.querySelectorAll("form input, form select, form textarea, form button");
+                    formElements.forEach(element => {
+                        element.style.display = "none";
+                    });
+                }
+                else {
+                    console.log("Normal activity. Trajectory will be saved.");
+                    captchaRequired = false; // Отключаем галочку "Я не робот"
+                }
+            }
+        }
+
+        // Разблокируем форму после отметки "Я не робот"
+        function unlockForm() {
+            if (document.getElementById("robotCheck").checked) {
+                document.getElementById("submitButton").disabled = false; // Разблокируем кнопку
+                trackingActive = true;  // Включаем отслеживание действий
+                captchaRequired = false; // Отключаем требование галочки
+                clearInterval(countdown); // Останавливаем таймер
+                //moveImageToEthalon(receivedImagePath); // Перемещаем изображение к эталонным
+                console.log("Captcha verified. Form unlocked.");
+            }
+        }
+
+        let countdown; // Переменная для хранения таймера
+
+        // Функция для старта таймера
+        function startCountdown(imagePath) {
+            let timeLeft = 60; // 60 секунд для подтверждения "Я не робот"
+
+            countdown = setInterval(async () => {
+                if (timeLeft <= 0) {
+                    clearInterval(countdown); // Останавливаем таймер
+                    await deleteImageFromTemp(imagePath);
+                } else {
+                    console.log(`Осталось времени: ${timeLeft} секунд`);
+                    timeLeft--;
+                }
+            }, 1000);
+        }
+
+        // Удаление изображения из временной директории
+        async function deleteImageFromTemp(imagePath) {
+            try {
+                let response = await fetch('/delete-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagePath: imagePath })
+                });
+                console.log("Изображение удалено:", await response.text());
+            } catch (error) {
+                console.error('Ошибка удаления изображения:', error);
+            }
+        }
+
+        // Перемещение изображения к эталонным траекториям
+        async function moveImageToEthalon(imagePath) {
+            try {
+                let response = await fetch(`/move-to-ethalon?imagePath=${imagePath}`, {
+                    method: 'POST'
+                });
+                console.log("Ответ от сервера:", await response.text());
+            } catch (error) {
+                console.error('Ошибка перемещения изображения:', error);
+            }
+        }
+    </script>
+</head>
+<body>
+<h2>Ваша форма</h2>
+
+<form>
+    <label for="firstName">Имя</label>
+    <input type="text" id="firstName" placeholder="Введите имя">
+
+    <label for="lastName">Фамилия</label>
+    <input type="text" id="lastName" placeholder="Введите фамилию">
+
+    <label for="bidText">Текст заявки</label>
+    <textarea id="bidText" name="bidText" rows="4" cols="50"></textarea><br>
+
+    <!-- Контейнер для галочки "Я не робот" (скрыт по умолчанию) -->
+    <div id="robotCheckContainer" style="display:none;">
+        <input type="checkbox" id="robotCheck" onclick="unlockForm()">
+        <label for="robotCheck">Я не робот</label>
+    </div>
+    <div id="formBlockedMessage" style="display: none; color: red; font-size: 30px; text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        Форма заблокирована
+    </div>
+    <button type="submit" id="submitButton" onclick="logData(event)">Отправить</button>
+</form>
+
+</body>
+</html>

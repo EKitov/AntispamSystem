@@ -1,0 +1,219 @@
+/* Основные стили */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+    transition: margin-left 0.3s; /* Плавное смещение для боковой панели */
+}
+
+.container {
+    width: 90%;
+    margin: 20px auto;
+}
+
+/* Заголовок */
+h1 {
+    font-size: 24px;
+    color: #333;
+}
+
+/* Панель фильтров */
+.filter-panel {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.filter-button {
+    background-color: #e0e0e0;
+    border: none;
+    padding: 10px 15px;
+    margin-right: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.filter-button.active,
+.filter-button:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.search-input {
+    margin-left: auto;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Контекстное меню */
+.context-menu {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.context-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.context-menu ul li {
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.context-menu ul li:hover {
+    background-color: #4CAF50; /* Зеленый фон при наведении */
+    color: white;
+}
+
+/* Гамбургер и боковая панель */
+.hamburger-menu {
+    font-size: 24px;
+    cursor: pointer;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    transition: color 0.3s;
+}
+
+.hamburger-menu:hover {
+    color: #4CAF50;
+}
+
+.sidebar {
+    width: 200px;
+    position: fixed;
+    top: 0;
+    left: -200px;
+    height: 100%;
+    background-color: #333;
+    color: white;
+    transition: left 0.3s;
+    padding-top: 20px;
+    z-index: 100;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar.visible {
+    left: 0;
+}
+
+body.shifted {
+    margin-left: 200px;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #444;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    display: block;
+    transition: color 0.2s;
+}
+
+.sidebar ul li a:hover {
+    color: #4CAF50;
+}
+
+/* Карточки заявок */
+.bid-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.bid-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    width: 280px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s, transform 0.2s;
+}
+
+.bid-card:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+/* Цветовая индикация для статусов */
+.status[data-status="Новая"] {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status[data-status="В обработке"] {
+    background-color: #FF9800;
+    color: white;
+}
+
+.status[data-status="Успешная"] {
+    background-color: #2196F3;
+    color: white;
+}
+
+.status[data-status="Некачественная"] {
+    background-color: #F44336;
+    color: white;
+}
+
+.status[data-status="Спам"] {
+    background-color: #831414;
+    color: white;
+}
+
+.status {
+    font-size: 0.9em;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.card-body {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.card-body p {
+    margin: 5px 0;
+}
+
+.presentation a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.presentation a:hover {
+    text-decoration: underline;
+}
